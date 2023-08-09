@@ -22,11 +22,11 @@ export class DomCompiler {
 	compile(path: string) {
 		let source = readFileSync(path).toString();
 
-		if (source.trim().startsWith('// @vldom ignore')) {
+		if (source.trim().startsWith('// @acryps/page ignore')) {
 			return;
 		}
 
-		if (source.trim().startsWith('// @vldom parsed')) {
+		if (source.trim().startsWith('// @acryps/page parsed')) {
 			console.warn(`ignoring already parsed file '${path}'`);
 
 			return;
@@ -83,7 +83,7 @@ export class DomCompiler {
             offset += item.length - item.content.length;
         }
         
-        writeFileSync(path, `// @vldom parsed\n${source}`);
+        writeFileSync(path, `// @acryps/page parsed\n${source}`);
 	}
 
 	scan(directory: string) {

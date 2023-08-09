@@ -1,22 +1,23 @@
 {
-	"name": "vldom",
-	"version": "9.2.3",
+	"name": "@acryps/page",
+	"version": "1.0.0",
 	"description": "simple component system",
 	"main": "dist/index.js",
 	"typings": "dist/index.d.ts",
 	"bin": {
-		"vldom": "bin/vldom.js"
+		"page": "bin/page.js"
 	},
 	"scripts": {
 		"preversion": "git pull",
 		"postversion": "git push",
 		"prepare": "tsc"
 	},
-	"author": "Levi Hechenberger",
 	"license": "GPL-3.0-only",
 	"keywords": [
-		"vldom",
-		"vlui"
+		"page",
+		"dom",
+		"components",
+		"ui"
 	],
 	"dependencies": {
 		"espree": "^9.3.2",

@@ -1,12 +1,8 @@
-[![npm version](http://badge.acryps.com/npm/vldom)](http://badge.acryps.com/go/npm/vldom)
+[![npm version](https://badge.acryps.com/npm/@acryps%2Fpage)](http://badge.acryps.com/go/npm/@acryps%2Fpage)
 
-<img src="logo.svg" height="50">
-
-# vldom TypeScript Frontend Component System
+# @acryps/page TypeScript Frontend Component System
 
 Simple component system with integrated routing.
-
-> version 9: new engine, even more efficient
 
 ## Setup
 You"ll need to enable jsx in your tsconfig
@@ -19,9 +15,9 @@ You"ll need to enable jsx in your tsconfig
 	}
 }</pre>
 
-Compile your client with `tsc` and `vldom compile`!
+Compile your client with `tsc` and `page compile`!
 ```
-tsc && vldom compile
+tsc && page compile
 ```
 
 ## Usage
@@ -64,9 +60,9 @@ new ExampleRecursiveComponent(10).host(document.body);
 ```
 
 ## Router
-vldom has a built-in router
+page has a built-in router
 ```
-const router = new Router(PageComponent
+const router = new PathRouter(PageComponent
 	.route("/home", HomeComponent),
 	.route("/books", BooksComponent
 		.route("/:id", BookComponent)
@@ -108,8 +104,6 @@ class BookComponent extends Component {
 }
 
 router.host(document.body);
-
-onhashchange = () => router.update();
 ```
 
 ## Directives
