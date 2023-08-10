@@ -141,10 +141,21 @@ export class Component {
 			clearTimeout(timeout);
 		}
 
-		if (this.child) {
-			await this.child.unload();
+		async function unloadChildren(node: Node, hostingComponent: Component) {
+			let child = node.firstChild;
+
+			while (child.nextSibling) {
+				if (child.hostingComponent && child.hostingComponent.parent == hostingComponent) {
+					await (child as any as Component).unload();
+				} else if (child.nodeType == Node.ELEMENT_NODE) {
+					await unloadChildren(child, hostingComponent);
+				}
+
+				child = child.nextSibling;
+			}
 		}
 
+		await unloadChildren(this.rootNode, this);
 		await this.onunload();
 	}
 
