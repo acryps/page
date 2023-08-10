@@ -11,6 +11,8 @@ export class Router extends EventTarget {
 	static parameterNameMatcher = /:[a-zA-Z0-9]+/g;
 	static parameterMatcher = '([^/]+)';
 
+	declare addEventListener: (type: 'parameterchange', callback: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => void;
+
 	rootNode: Node;
 
 	onerror(error: Error, component?: Component) {
@@ -25,7 +27,7 @@ export class Router extends EventTarget {
 	private renderedStack: RouteLayer[];
 	private activeRender: Render;
 
-	private onParameterChangeEvent: CustomEvent<void> = new CustomEvent('onparameterchange', {});
+	private onParameterChangeEvent: CustomEvent<void> = new CustomEvent('parameterchange', {});
 
 	constructor(
 		public getActivePath: () => string,
@@ -47,8 +49,6 @@ export class Router extends EventTarget {
 			}
 		}
 	}
-
-	addEventListener = (type: 'onparameterchange', callback: EventListenerOrEventListenerObject | null, options?: EventListenerOptions | boolean) => super.addEventListener;
 
 	navigate(path: string, relative?: Component) {
 		this.updateActivePath(this.absolute(path, relative));

@@ -2,8 +2,8 @@
 	"name": "@acryps/page",
 	"version": "1.0.1",
 	"description": "simple component system",
-	"main": "dist/index.js",
-	"typings": "dist/index.d.ts",
+	"main": "built/index.js",
+	"typings": "built/index.d.ts",
 	"bin": {
 		"page": "bin/page.js"
 	},

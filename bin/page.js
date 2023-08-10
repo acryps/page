@@ -1,3 +1,3 @@
 #!/usr/bin/env node
 
-require('../dist/tools/index.js');
+require('../built/tools/index.js');
