@@ -6,11 +6,6 @@ export class Component {
 	static directives: { 
 		[ key: string ]: (element: Node, value, tag: string, attributes, ...content) => void
 	} = {};
-	
-	private timers = {
-		intervals: [],
-		timeouts: []
-	};
 
 	loaded = true;
 	
@@ -57,42 +52,6 @@ export class Component {
 		);
 	}
 	
-	createTimeout(handler: Function, time: number) {
-		const timer = setTimeout(() => {
-			this.timers.timeouts.splice(this.timers.timeouts.indexOf(timer), 1);
-			
-			handler();
-		}, time);
-		
-		this.timers.timeouts.push(timer);
-	}
-	
-	createInterval(handler: Function, time: number, runOnStart = false) {
-		if (runOnStart) {
-			handler();
-		}
-		
-		const timer = setTimeout(() => {
-			handler();
-		}, time);
-		
-		this.timers.intervals.push(timer);
-	}
-	
-	clearTimers() {
-		for (let timer of this.timers.timeouts) {
-			clearTimeout(timer);
-		}
-		
-		this.timers.timeouts = [];
-		
-		for (let timer of this.timers.intervals) {
-			clearInterval(timer);
-		}
-		
-		this.timers.intervals = [];
-	}
-	
 	update(child?: Node) {
 		if (arguments.length == 0) {
 			child = this.childNode;
@@ -131,15 +90,6 @@ export class Component {
 
 	async unload() {
 		this.loaded = false;
-
-		// stop all timers
-		for (let interval of this.timers.intervals) {
-			clearInterval(interval);
-		}
-
-		for (let timeout of this.timers.timeouts) {
-			clearTimeout(timeout);
-		}
 
 		async function unloadChildren(node: Node, hostingComponent: Component) {
 			if (node.nodeType == Node.ELEMENT_NODE) {
