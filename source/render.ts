@@ -54,7 +54,7 @@ export class Render {
 
 				// create new component - if the component was not already created by parent (to create the placeholder)
 				if (!layer.rendered) {
-					layer.rendered = new layer.component();
+					layer.rendered = new layer.source.component();
 					layer.rendered.route = layer.route;
 					layer.rendered.parameters = layer.parameters;
 					layer.rendered.parent = parent?.rendered;
@@ -92,7 +92,7 @@ export class Render {
 				// create placeholder for child
 				if (child && !layerError) {
 					// already create child, as the loader is rendered on the instance itself
-					child.rendered = new child.component();
+					child.rendered = new child.source.component();
 					child.rendered.route = child.route;
 					child.rendered.parameters = child.parameters;
 					child.rendered.parent = layer.rendered;

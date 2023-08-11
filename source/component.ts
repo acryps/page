@@ -142,12 +142,17 @@ export class Component {
 		}
 
 		async function unloadChildren(node: Node, hostingComponent: Component) {
+			if (node.nodeType == Node.ELEMENT_NODE) {
+				return;
+			}
+			
 			let child = node.firstChild;
 
-			while (child.nextSibling) {
+			// DOM intended to iterate with nextSibling through nodes
+			while (child) {
 				if (child.hostingComponent && child.hostingComponent.parent == hostingComponent) {
 					await (child as any as Component).unload();
-				} else if (child.nodeType == Node.ELEMENT_NODE) {
+				} else {
 					await unloadChildren(child, hostingComponent);
 				}
 

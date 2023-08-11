@@ -1,8 +1,9 @@
 import { Component } from './component';
+import { ConstructedRoute } from './constructed-route';
 import { Route } from './route';
 
 export class RouteLayer {
-	component: typeof Component;
+	source: ConstructedRoute;
 	rendered?: Component;
 	parameters: any;
 	route: Route;

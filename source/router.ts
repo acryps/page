@@ -96,57 +96,73 @@ export class Router extends EventTarget {
 	}
 
 	getActiveParameters(path: string, activeRoute: ConstructedRoute) {
-		const items: Record<string, string>[] = [];
-
+		const parameterStack: Record<string, string>[] = [];
 		let route = activeRoute;
 
 		while (route) {
-			const item = {};
-
-			const matches = path.match(route.openStartPath).slice(1);
-
-			for (let i = 0; i < route.parameters.length; i++) {
-				item[route.parameters[i]] = matches[i];
-			}
-
-			items.unshift(new Proxy<any>(item, {
-				set(object, property, value) {
-					// re-generate parameter string
-					let path = this.route.matchingPath.replace(`:${property.toString()}`, value);
-		
-					// Update path for each route
-					function updatePath(component: Component, layerIndex: number, path: string) {
-						let route = component.route;
-		
-						for (let parentIndex = 0; parentIndex < layerIndex; parentIndex++) {
-							route = route.parent;
-						}
-		
-						route.path = path;
-		
-						if (component.child) {
-							updatePath(component.child, layerIndex + 1, path);
-						}
-					}
-		
-					updatePath(this, 0, path);
-
-					this.updateActivePath(path);
-					this.dispatchEvent(this.onParameterChangeEvent);
-		
-					object[property] = value;
-
-					console.log('Updated parameter', property, value);
-		
-					return true;
-				}
-			}));
+			parameterStack.unshift(this.getRouteParameters(
+				route, 
+				activeRoute.parents.indexOf(route),
+				path.match(route.openStartPath).slice(1)
+			));
 
 			path = path.replace(route.openStartPath, '');
 			route = route.parent;
 		}
 
-		return items;
+		return parameterStack;
+	}
+
+	getRouteParameters(route: ConstructedRoute, layerIndex: number, initialValues: string[]) {
+		const parameters = {};
+
+		for (let i = 0; i < route.parameters.length; i++) {
+			parameters[route.parameters[i]] = initialValues[i];
+		}
+
+		let renderedComponent: RouteLayer;
+
+		requestAnimationFrame(() => {
+			renderedComponent = this.renderedStack[layerIndex];
+		});
+
+		// proxy the parameters object to receive changes when users set values
+		return new Proxy<any>(parameters, {
+			set: (object, property, value) => {
+				// don't update if the value is already set
+				if (object[property] === value) {
+					return;
+				}
+
+				object[property] = value;
+
+				requestAnimationFrame(() => {
+					// quit if the value was overwritten since we set it above
+					if (object[property] !== value) {
+						return;
+					}
+
+					// abort if the update targets a disposed component
+					if (renderedComponent.rendered != this.renderedStack[layerIndex]?.rendered) {
+						return true;
+					}
+
+					// regenerate our routes parameter string
+					let path = route.clientRoute.matchingPath;
+					
+					for (let key in object) {
+						path = path.replace(`:${key}`, object[key]);
+					}
+
+					renderedComponent.route.path = path;
+
+					this.updateActivePath(this.renderedStack[this.renderedStack.length - 1].route.fullPath);
+					this.dispatchEvent(this.onParameterChangeEvent);
+				});
+
+				return true;
+			}
+		});
 	}
 
 	async update() {
@@ -171,7 +187,7 @@ export class Router extends EventTarget {
 		const route = this.getRoute(path);
 		const parameters = this.getActiveParameters(path, route);
 
-		const stack = [];
+		const stack: RouteLayer[] = [];
 
 		for (let layerIndex = 0; layerIndex < route.parents.length; layerIndex++) {
 			// clone the routes original client route
@@ -187,9 +203,9 @@ export class Router extends EventTarget {
 			}
 
 			stack.push({
-				component: route.parents[layerIndex].component,
 				parameters: parameters[layerIndex],
-				route: clientRoute
+				route: clientRoute,
+				source: route.parents[layerIndex]
 			});
 		}
 
