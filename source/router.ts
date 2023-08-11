@@ -15,6 +15,8 @@ export class Router extends EventTarget {
 
 	rootNode: Node;
 
+	onParameterChange = () => {};
+
 	onerror(error: Error, component?: Component) {
 		console.log(`Error occurred in component`, component, error);
 	}
@@ -158,6 +160,7 @@ export class Router extends EventTarget {
 
 					this.updateActivePath(this.renderedStack[this.renderedStack.length - 1].route.fullPath);
 					this.dispatchEvent(this.onParameterChangeEvent);
+					this.onParameterChange();
 				});
 
 				return true;
