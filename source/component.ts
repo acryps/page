@@ -52,7 +52,11 @@ export class Component {
 		);
 	}
 	
-	update(child?: Node) {
+	async update(child?: Node) {
+		for (const childComponent of this.getChildren(this.rootNode, this)) {
+			await childComponent.unload();
+		}
+
 		if (arguments.length == 0) {
 			child = this.childNode;
 		} else {
@@ -79,39 +83,42 @@ export class Component {
 	}
 
 	async reload() {
+		await this.onunload();
 		await this.onload();
-
-		if (this.child) {
-			await this.child.reload();
-		}
-
+		
 		await this.update();
 	}
 
 	async unload() {
-		this.loaded = false;
+		for (const childComponent of this.getChildren(this.rootNode, this)) {
+			await childComponent.unload();
+		}
 
-		async function unloadChildren(node: Node, hostingComponent: Component) {
-			if (node.nodeType == Node.ELEMENT_NODE) {
-				return;
-			}
-			
+		if (this.loaded) {
+			this.loaded = false;
+			await this.onunload();
+		}
+	}
+
+	private getChildren(node: Node, hostingComponent: Component) {
+		const children: Component[] = [];
+
+		if (node.nodeType == Node.ELEMENT_NODE) {
 			let child = node.firstChild;
 
 			// DOM intended to iterate with nextSibling through nodes
 			while (child) {
 				if (child.hostingComponent && child.hostingComponent.parent == hostingComponent) {
-					await (child as any as Component).unload();
+					children.push(child.hostingComponent);
 				} else {
-					await unloadChildren(child, hostingComponent);
+					children.push(...this.getChildren(child, hostingComponent));
 				}
 
 				child = child.nextSibling;
 			}
 		}
 
-		await unloadChildren(this.rootNode, this);
-		await this.onunload();
+		return children;
 	}
 
 	static createElement(tag, attributes, ...contents) {
