@@ -199,7 +199,7 @@ export class Component {
 	}
 
 	navigate(path: string) {
-		Router.global.navigate(path, this);
+		this.router.navigate(path, this);
 
 		return document.createComment(path);
 	}
@@ -208,7 +208,7 @@ export class Component {
 		this.rootNode?.parentElement?.removeChild(this.rootNode);
 	}
 
-	static updating(handler: (index?: number) => string | number, interval) {
+	static updating(handler: (index?: number) => string | number, interval) {
 		const element = document.createTextNode(`${handler(0)}`);
 		let i = 0;
 

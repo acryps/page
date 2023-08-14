@@ -11,7 +11,7 @@ switch (args[0]) {
 	default: {
 		console.warn(`invalid command: ${args[0]}`);
 		console.group();
-		console.log('compile: Compile classes in typescript built');
+		console.log('compile: Compile classes in typescript output');
 		console.groupEnd();
 
 		process.exit(1);

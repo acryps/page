@@ -4,18 +4,18 @@ import { RouteableRouteGroup, RouteGroup } from './route-group';
 import { Route } from './route';
 import { RouteLayer } from './route-layer';
 import { Render } from './render';
+import { ParameterContainer } from './parameters';
 
 export class Router extends EventTarget {
-	static global: Router;
-	
 	static parameterNameMatcher = /:[a-zA-Z0-9]+/g;
 	static parameterMatcher = '([^/]+)';
 
-	declare addEventListener: (type: 'parameterchange', callback: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => void;
+	declare addEventListener: (type: 'routechange' | 'parameterchange', callback: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => void;
 
 	rootNode: Node;
 
-	onParameterChange = () => {};
+	onroutechange = () => {};
+	onparameterchange = () => {};
 
 	onerror(error: Error, component?: Component) {
 		console.log(`Error occurred in component`, component, error);
@@ -29,6 +29,7 @@ export class Router extends EventTarget {
 	private renderedStack: RouteLayer[];
 	private activeRender: Render;
 
+	private onRouteChangeEvent: CustomEvent<void> = new CustomEvent('routechange', {});
 	private onParameterChangeEvent: CustomEvent<void> = new CustomEvent('parameterchange', {});
 
 	constructor(
@@ -98,13 +99,13 @@ export class Router extends EventTarget {
 	}
 
 	getActiveParameters(path: string, activeRoute: ConstructedRoute) {
-		const parameterStack: Record<string, string>[] = [];
+		const parameterStack: ParameterContainer[] = [];
 		let route = activeRoute;
 
 		while (route) {
 			parameterStack.unshift(this.getRouteParameters(
 				route, 
-				activeRoute.parents.indexOf(route),
+				activeRoute.peers.indexOf(route),
 				path.match(route.openStartPath).slice(1)
 			));
 
@@ -115,57 +116,59 @@ export class Router extends EventTarget {
 		return parameterStack;
 	}
 
-	getRouteParameters(route: ConstructedRoute, layerIndex: number, initialValues: string[]) {
+	getRouteParameters(route: ConstructedRoute, layerIndex: number, initialValues: string[]): ParameterContainer {
 		const parameters = {};
 
-		for (let i = 0; i < route.parameters.length; i++) {
-			parameters[route.parameters[i]] = initialValues[i];
+		for (let index = 0; index < route.parameters.length; index++) {
+			parameters[route.parameters[index]] = initialValues[index];
 		}
 
-		let renderedComponent: RouteLayer;
-
-		requestAnimationFrame(() => {
-			renderedComponent = this.renderedStack[layerIndex];
-		});
+		let renderedLayer: RouteLayer;
 
 		// proxy the parameters object to receive changes when users set values
-		return new Proxy<any>(parameters, {
-			set: (object, property, value) => {
-				// don't update if the value is already set
-				if (object[property] === value) {
-					return;
-				}
-
-				object[property] = value;
-
-				requestAnimationFrame(() => {
-					// quit if the value was overwritten since we set it above
-					if (object[property] !== value) {
-						return;
-					}
-
-					// abort if the update targets a disposed component
-					if (renderedComponent.rendered != this.renderedStack[layerIndex]?.rendered) {
+		return {
+			set renderedLayer(layer) {
+				renderedLayer = layer;
+			},
+			
+			client: new Proxy<any>(parameters, {
+				set: (object, property, value) => {
+					// don't update if the value is already set
+					if (object[property] === value) {
 						return true;
 					}
 
-					// regenerate our routes parameter string
-					let path = route.clientRoute.matchingPath;
-					
-					for (let key in object) {
-						path = path.replace(`:${key}`, object[key]);
-					}
+					object[property] = value;
 
-					renderedComponent.route.path = path;
+					requestAnimationFrame(() => {
+						// quit if the value was overwritten since we set it above
+						if (object[property] !== value) {
+							return;
+						}
 
-					this.updateActivePath(this.renderedStack[this.renderedStack.length - 1].route.fullPath);
-					this.dispatchEvent(this.onParameterChangeEvent);
-					this.onParameterChange();
-				});
+						// abort if the update targets a disposed component
+						if (renderedLayer.rendered != this.renderedStack[layerIndex]?.rendered) {
+							return;
+						}
 
-				return true;
-			}
-		});
+						// regenerate our routes parameter string
+						let path = route.clientRoute.matchingPath;
+						
+						for (let key in object) {
+							path = path.replace(`:${key}`, object[key]);
+						}
+
+						renderedLayer.route.path = path;
+            
+				    this.updateActivePath(this.renderedStack[this.renderedStack.length - 1].route.fullPath);
+					  this.dispatchEvent(this.onParameterChangeEvent);
+					  this.onparameterchange();
+				  });
+
+					return true;
+				}
+			})
+		};
 	}
 
 	async update() {
@@ -183,32 +186,52 @@ export class Router extends EventTarget {
 		// overwrite the currently active stack and reset the renderer
 		this.renderedStack = this.activeRender.stack;
 		this.activeRender = null;
+
+		this.dispatchEvent(this.onRouteChangeEvent);
+		this.onroutechange();
 	}
 
-	buildRouteStack() {
+	buildRouteStack(source = this.renderedStack) {
 		const path = this.getActivePath();
 		const route = this.getRoute(path);
 		const parameters = this.getActiveParameters(path, route);
 
 		const stack: RouteLayer[] = [];
 
-		for (let layerIndex = 0; layerIndex < route.parents.length; layerIndex++) {
-			// clone the routes original client route
-			const clientRoute = new Route();
-			clientRoute.path = clientRoute.matchingPath = route.parents[layerIndex].clientRoute.matchingPath;
-			clientRoute.child = route.parents[layerIndex + 1]?.clientRoute;
-			clientRoute.parent = stack[layerIndex - 1]?.route;
-			clientRoute.component = route.parents[layerIndex].component;
+		// will be true once one layer has not been found in the source stack
+		// prevents parents swapping from reusing the same client route
+		let changed = false;
 
+		for (let layerIndex = 0; layerIndex < route.peers.length; layerIndex++) {
+			let path = route.peers[layerIndex].clientRoute.matchingPath;
+			
 			// insert the active parameters into the client routes path
-			for (let key in parameters[layerIndex]) {
-				clientRoute.path = clientRoute.path.replace(`:${key}`, parameters[layerIndex][key]);
+			for (let key in parameters[layerIndex].client) {
+				path = path.replace(`:${key}`, parameters[layerIndex].client[key]);
 			}
+
+			let clientRoute;
+			
+			// try to reuse an existing route
+			if (!changed && source && source[layerIndex] && source[layerIndex].route.path == path) {
+				clientRoute = source[layerIndex].route;
+			} else {
+				clientRoute = new Route();
+				clientRoute.matchingPath = route.peers[layerIndex].clientRoute.matchingPath;
+				clientRoute.parent = stack[layerIndex - 1]?.route;
+				clientRoute.component = route.peers[layerIndex].component;
+				clientRoute.path = path;
+
+				changed = true;
+			}
+
+			// children might have changed even if the current route can be reused
+			clientRoute.child = route.peers[layerIndex + 1]?.clientRoute;
 
 			stack.push({
 				parameters: parameters[layerIndex],
 				route: clientRoute,
-				source: route.parents[layerIndex]
+				source: route.peers[layerIndex]
 			});
 		}
 
@@ -225,7 +248,7 @@ export class Router extends EventTarget {
 				component: typeof route == 'function' ? route : (route as any).component,
 				parent: parent,
 				parameters: (path.match(Router.parameterNameMatcher) || []).map(key => key.replace(':', '')),
-				parents: [],
+				peers: [],
 				clientRoute: new Route()
 			}
 
@@ -245,7 +268,7 @@ export class Router extends EventTarget {
 				let item = route;
 
 				while (item) {
-					route.parents.unshift(item);
+					route.peers.unshift(item);
 
 					item = item.parent;
 				}
@@ -254,8 +277,6 @@ export class Router extends EventTarget {
 	}
 
 	host(root: Node) {
-		Router.global = this;
-
 		this.routes = {
 			'': {
 				component: this.root,
