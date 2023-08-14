@@ -56,9 +56,11 @@ export class Render {
 				if (!layer.rendered) {
 					layer.rendered = new layer.source.component();
 					layer.rendered.route = layer.route;
-					layer.rendered.parameters = layer.parameters;
 					layer.rendered.parent = parent?.rendered;
 					layer.rendered.router = this.router;
+
+					layer.rendered.parameters = layer.parameters.client;
+					layer.parameters.renderedLayer = layer;
 
 					if (parent) {
 						parent.rendered.child = layer.rendered;
@@ -94,9 +96,11 @@ export class Render {
 					// already create child, as the loader is rendered on the instance itself
 					child.rendered = new child.source.component();
 					child.rendered.route = child.route;
-					child.rendered.parameters = child.parameters;
 					child.rendered.parent = layer.rendered;
 					child.rendered.router = this.router;
+
+					child.rendered.parameters = child.parameters.client;
+					child.parameters.renderedLayer = child;
 
 					layer.rendered.child = child.rendered;
 
@@ -140,7 +144,7 @@ export class Render {
 				}
 
 				// execute on child change
-				parent?.rendered.onchildchange(layer.parameters, layer.route, layer.rendered);
+				parent?.rendered.onchildchange(layer.parameters.client, layer.route, layer.rendered);
 
 				// will mark any following components as dirty -> they will be re-created
 				this.detached = true;
