@@ -10,11 +10,12 @@ export class Router extends EventTarget {
 	static parameterNameMatcher = /:[a-zA-Z0-9]+/g;
 	static parameterMatcher = '([^/]+)';
 
-	declare addEventListener: (type: 'parameterchange', callback: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => void;
+	declare addEventListener: (type: 'routechange' | 'parameterchange', callback: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => void;
 
 	rootNode: Node;
 
-	onParameterChange = () => {};
+	onroutechange = () => {};
+	onparameterchange = () => {};
 
 	onerror(error: Error, component?: Component) {
 		console.log(`Error occurred in component`, component, error);
@@ -28,6 +29,7 @@ export class Router extends EventTarget {
 	private renderedStack: RouteLayer[];
 	private activeRender: Render;
 
+	private onRouteChangeEvent: CustomEvent<void> = new CustomEvent('routechange', {});
 	private onParameterChangeEvent: CustomEvent<void> = new CustomEvent('parameterchange', {});
 
 	constructor(
@@ -157,11 +159,11 @@ export class Router extends EventTarget {
 						}
 
 						renderedLayer.route.path = path;
-
-						this.updateActivePath(this.renderedStack[this.renderedStack.length - 1].route.fullPath);
-						this.dispatchEvent(this.onParameterChangeEvent);
-						this.onParameterChange();
-					});
+            
+				    this.updateActivePath(this.renderedStack[this.renderedStack.length - 1].route.fullPath);
+					  this.dispatchEvent(this.onParameterChangeEvent);
+					  this.onparameterchange();
+				  });
 
 					return true;
 				}
@@ -184,6 +186,9 @@ export class Router extends EventTarget {
 		// overwrite the currently active stack and reset the renderer
 		this.renderedStack = this.activeRender.stack;
 		this.activeRender = null;
+
+		this.dispatchEvent(this.onRouteChangeEvent);
+		this.onroutechange();
 	}
 
 	buildRouteStack(source = this.renderedStack) {
