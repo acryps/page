@@ -186,25 +186,42 @@ export class Router extends EventTarget {
 		this.activeRender = null;
 	}
 
-	buildRouteStack() {
+	buildRouteStack(source = this.renderedStack) {
 		const path = this.getActivePath();
 		const route = this.getRoute(path);
 		const parameters = this.getActiveParameters(path, route);
 
 		const stack: RouteLayer[] = [];
 
-		for (let layerIndex = 0; layerIndex < route.peers.length; layerIndex++) {
-			// clone the routes original client route
-			const clientRoute = new Route();
-			clientRoute.path = clientRoute.matchingPath = route.peers[layerIndex].clientRoute.matchingPath;
-			clientRoute.child = route.peers[layerIndex + 1]?.clientRoute;
-			clientRoute.parent = stack[layerIndex - 1]?.route;
-			clientRoute.component = route.peers[layerIndex].component;
+		// will be true once one layer has not been found in the source stack
+		// prevents parents swapping from reusing the same client route
+		let changed = false;
 
+		for (let layerIndex = 0; layerIndex < route.peers.length; layerIndex++) {
+			let path = route.peers[layerIndex].clientRoute.matchingPath;
+			
 			// insert the active parameters into the client routes path
 			for (let key in parameters[layerIndex].client) {
-				clientRoute.path = clientRoute.path.replace(`:${key}`, parameters[layerIndex].client[key]);
+				path = path.replace(`:${key}`, parameters[layerIndex].client[key]);
 			}
+
+			let clientRoute;
+			
+			// try to reuse an existing route
+			if (!changed && source && source[layerIndex] && source[layerIndex].route.path == path) {
+				clientRoute = source[layerIndex].route;
+			} else {
+				clientRoute = new Route();
+				clientRoute.matchingPath = route.peers[layerIndex].clientRoute.matchingPath;
+				clientRoute.parent = stack[layerIndex - 1]?.route;
+				clientRoute.component = route.peers[layerIndex].component;
+				clientRoute.path = path;
+
+				changed = true;
+			}
+
+			// children might have changed even if the current route can be reused
+			clientRoute.child = route.peers[layerIndex + 1]?.clientRoute;
 
 			stack.push({
 				parameters: parameters[layerIndex],
