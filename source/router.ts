@@ -4,6 +4,7 @@ import { RouteableRouteGroup, RouteGroup } from './route-group';
 import { Route } from './route';
 import { RouteLayer } from './route-layer';
 import { Render } from './render';
+import { ParameterContainer } from './parameters';
 
 export class Router extends EventTarget {
 	static global: Router;
@@ -98,7 +99,7 @@ export class Router extends EventTarget {
 	}
 
 	getActiveParameters(path: string, activeRoute: ConstructedRoute) {
-		const parameterStack: Record<string, string>[] = [];
+		const parameterStack: ParameterContainer[] = [];
 		let route = activeRoute;
 
 		while (route) {
@@ -115,57 +116,59 @@ export class Router extends EventTarget {
 		return parameterStack;
 	}
 
-	getRouteParameters(route: ConstructedRoute, layerIndex: number, initialValues: string[]) {
+	getRouteParameters(route: ConstructedRoute, layerIndex: number, initialValues: string[]): ParameterContainer {
 		const parameters = {};
 
-		for (let i = 0; i < route.parameters.length; i++) {
-			parameters[route.parameters[i]] = initialValues[i];
+		for (let index = 0; index < route.parameters.length; index++) {
+			parameters[route.parameters[index]] = initialValues[index];
 		}
 
-		let renderedComponent: RouteLayer;
-
-		requestAnimationFrame(() => {
-			renderedComponent = this.renderedStack[layerIndex];
-		});
+		let renderedLayer: RouteLayer;
 
 		// proxy the parameters object to receive changes when users set values
-		return new Proxy<any>(parameters, {
-			set: (object, property, value) => {
-				// don't update if the value is already set
-				if (object[property] === value) {
-					return;
-				}
-
-				object[property] = value;
-
-				requestAnimationFrame(() => {
-					// quit if the value was overwritten since we set it above
-					if (object[property] !== value) {
-						return;
-					}
-
-					// abort if the update targets a disposed component
-					if (renderedComponent.rendered != this.renderedStack[layerIndex]?.rendered) {
+		return {
+			set renderedLayer(layer) {
+				renderedLayer = layer;
+			},
+			
+			client: new Proxy<any>(parameters, {
+				set: (object, property, value) => {
+					// don't update if the value is already set
+					if (object[property] === value) {
 						return true;
 					}
 
-					// regenerate our routes parameter string
-					let path = route.clientRoute.matchingPath;
-					
-					for (let key in object) {
-						path = path.replace(`:${key}`, object[key]);
-					}
+					object[property] = value;
 
-					renderedComponent.route.path = path;
+					requestAnimationFrame(() => {
+						// quit if the value was overwritten since we set it above
+						if (object[property] !== value) {
+							return;
+						}
 
-					this.updateActivePath(this.renderedStack[this.renderedStack.length - 1].route.fullPath);
-					this.dispatchEvent(this.onParameterChangeEvent);
-					this.onParameterChange();
-				});
+						// abort if the update targets a disposed component
+						if (renderedLayer.rendered != this.renderedStack[layerIndex]?.rendered) {
+							return;
+						}
 
-				return true;
-			}
-		});
+						// regenerate our routes parameter string
+						let path = route.clientRoute.matchingPath;
+						
+						for (let key in object) {
+							path = path.replace(`:${key}`, object[key]);
+						}
+
+						renderedLayer.route.path = path;
+
+						this.updateActivePath(this.renderedStack[this.renderedStack.length - 1].route.fullPath);
+						this.dispatchEvent(this.onParameterChangeEvent);
+						this.onParameterChange();
+					});
+
+					return true;
+				}
+			})
+		};
 	}
 
 	async update() {
