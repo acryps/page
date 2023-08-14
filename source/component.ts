@@ -3,7 +3,7 @@ import { Router } from './router';
 import { RouteableRouteGroup, RouteGroup } from './route-group';
 
 export class Component {
-	static directives: { 
+	static directives: {
 		[ key: string ]: (element: Node, value, tag: string, attributes, ...content) => void
 	} = {};
 
@@ -55,6 +55,7 @@ export class Component {
 	async update(child?: Node) {
 		for (const childComponent of this.getChildren(this.rootNode, this)) {
 			await childComponent.unload();
+			await childComponent.update();
 		}
 
 		if (arguments.length == 0) {
