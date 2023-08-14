@@ -6,7 +6,7 @@ export class ConstructedRoute {
 	openStartPath: RegExp;
 	component: typeof Component;
 	parent: ConstructedRoute;
-	parents: ConstructedRoute[];
+	peers: ConstructedRoute[];
 	parameters: string[];
 	clientRoute: Route;
 	loader?: Promise<any>;

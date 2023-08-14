@@ -103,7 +103,7 @@ export class Router extends EventTarget {
 		while (route) {
 			parameterStack.unshift(this.getRouteParameters(
 				route, 
-				activeRoute.parents.indexOf(route),
+				activeRoute.peers.indexOf(route),
 				path.match(route.openStartPath).slice(1)
 			));
 
@@ -193,23 +193,23 @@ export class Router extends EventTarget {
 
 		const stack: RouteLayer[] = [];
 
-		for (let layerIndex = 0; layerIndex < route.parents.length; layerIndex++) {
+		for (let layerIndex = 0; layerIndex < route.peers.length; layerIndex++) {
 			// clone the routes original client route
 			const clientRoute = new Route();
-			clientRoute.path = clientRoute.matchingPath = route.parents[layerIndex].clientRoute.matchingPath;
-			clientRoute.child = route.parents[layerIndex + 1]?.clientRoute;
+			clientRoute.path = clientRoute.matchingPath = route.peers[layerIndex].clientRoute.matchingPath;
+			clientRoute.child = route.peers[layerIndex + 1]?.clientRoute;
 			clientRoute.parent = stack[layerIndex - 1]?.route;
-			clientRoute.component = route.parents[layerIndex].component;
+			clientRoute.component = route.peers[layerIndex].component;
 
 			// insert the active parameters into the client routes path
-			for (let key in parameters[layerIndex]) {
-				clientRoute.path = clientRoute.path.replace(`:${key}`, parameters[layerIndex][key]);
+			for (let key in parameters[layerIndex].client) {
+				clientRoute.path = clientRoute.path.replace(`:${key}`, parameters[layerIndex].client[key]);
 			}
 
 			stack.push({
 				parameters: parameters[layerIndex],
 				route: clientRoute,
-				source: route.parents[layerIndex]
+				source: route.peers[layerIndex]
 			});
 		}
 
@@ -226,7 +226,7 @@ export class Router extends EventTarget {
 				component: typeof route == 'function' ? route : (route as any).component,
 				parent: parent,
 				parameters: (path.match(Router.parameterNameMatcher) || []).map(key => key.replace(':', '')),
-				parents: [],
+				peers: [],
 				clientRoute: new Route()
 			}
 
@@ -246,7 +246,7 @@ export class Router extends EventTarget {
 				let item = route;
 
 				while (item) {
-					route.parents.unshift(item);
+					route.peers.unshift(item);
 
 					item = item.parent;
 				}

@@ -144,7 +144,7 @@ export class Render {
 				}
 
 				// execute on child change
-				parent?.rendered.onchildchange(layer.parameters, layer.route, layer.rendered);
+				parent?.rendered.onchildchange(layer.parameters.client, layer.route, layer.rendered);
 
 				// will mark any following components as dirty -> they will be re-created
 				this.detached = true;
