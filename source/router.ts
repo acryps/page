@@ -7,8 +7,6 @@ import { Render } from './render';
 import { ParameterContainer } from './parameters';
 
 export class Router extends EventTarget {
-	static global: Router;
-	
 	static parameterNameMatcher = /:[a-zA-Z0-9]+/g;
 	static parameterMatcher = '([^/]+)';
 
@@ -257,8 +255,6 @@ export class Router extends EventTarget {
 	}
 
 	host(root: Node) {
-		Router.global = this;
-
 		this.routes = {
 			'': {
 				component: this.root,
