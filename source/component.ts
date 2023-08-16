@@ -54,8 +54,7 @@ export class Component {
 	
 	async update(child?: Node) {
 		for (const childComponent of this.getChildren(this.rootNode, this)) {
-			await childComponent.unload();
-			await childComponent.update();
+			await childComponent.reload();
 		}
 
 		if (arguments.length == 0) {
@@ -79,6 +78,7 @@ export class Component {
 		}
 		
 		this.rootNode = element;
+		this.loaded = true;
 		
 		return element;
 	}
