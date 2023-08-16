@@ -106,7 +106,11 @@ export class Component {
 				
 				if (key in Component.directives) {
 					Component.directives[key](element, value, tag, attributes, contents);
-				} else if (value !== null) {
+				} else if (typeof value == 'boolean') {
+					if (value) {
+						element.setAttribute(key, '');
+					}
+				} else {
 					element.setAttribute(key, value);
 				}
 			}
