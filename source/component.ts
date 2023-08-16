@@ -52,7 +52,7 @@ export class Component {
 		);
 	}
 	
-	async update(child?: Node) {
+	update(child?: Node) {
 		if (arguments.length == 0) {
 			child = this.childNode;
 		} else {
