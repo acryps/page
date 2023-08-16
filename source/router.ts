@@ -10,12 +10,13 @@ export class Router extends EventTarget {
 	static parameterNameMatcher = /:[a-zA-Z0-9]+/g;
 	static parameterMatcher = '([^/]+)';
 
-	declare addEventListener: (type: 'routechange' | 'parameterchange', callback: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => void;
+	declare addEventListener: (type: 'beforeroutechange' | 'routechanged' | 'parameterchanged', callback: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => void;
 
 	rootNode: Node;
 
-	onroutechange = () => {};
-	onparameterchange = () => {};
+	onbeforeroutechange = () => {};
+	onroutechanged = () => {};
+	onparameterchanged = () => {};
 
 	onerror(error: Error, component?: Component) {
 		console.log(`Error occurred in component`, component, error);
@@ -29,8 +30,9 @@ export class Router extends EventTarget {
 	private renderedStack: RouteLayer[];
 	private activeRender: Render;
 
-	private onRouteChangeEvent: CustomEvent<void> = new CustomEvent('routechange', {});
-	private onParameterChangeEvent: CustomEvent<void> = new CustomEvent('parameterchange', {});
+	private onBeforeRouteChangeEvent: CustomEvent<void> = new CustomEvent('beforeroutechange', {});
+	private onRouteChangedEvent: CustomEvent<void> = new CustomEvent('routechanged', {});
+	private onParameterChangedEvent: CustomEvent<void> = new CustomEvent('parameterchanged', {});
 
 	constructor(
 		public getActivePath: () => string,
@@ -161,8 +163,8 @@ export class Router extends EventTarget {
 						renderedLayer.route.path = path;
 
 						this.updateActivePath(this.renderedStack[this.renderedStack.length - 1].route.fullPath);
-						this.dispatchEvent(this.onParameterChangeEvent);
-						this.onparameterchange();
+						this.dispatchEvent(this.onParameterChangedEvent);
+						this.onparameterchanged();
 					});
 
 					return true;
@@ -172,6 +174,9 @@ export class Router extends EventTarget {
 	}
 
 	async update() {
+		this.dispatchEvent(this.onBeforeRouteChangeEvent);
+		this.onbeforeroutechange();
+
 		// abort the current renderer if there is a render in progress
 		// the renderer returns a list of completed layers in the routing stack, which can be used as the base for this new render
 		if (this.activeRender) {
@@ -187,8 +192,8 @@ export class Router extends EventTarget {
 		this.renderedStack = this.activeRender.stack;
 		this.activeRender = null;
 
-		this.dispatchEvent(this.onRouteChangeEvent);
-		this.onroutechange();
+		this.dispatchEvent(this.onRouteChangedEvent);
+		this.onroutechanged();
 	}
 
 	buildRouteStack(source = this.renderedStack) {
