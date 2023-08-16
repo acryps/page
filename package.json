@@ -1,6 +1,6 @@
 {
 	"name": "@acryps/page",
-	"version": "1.0.4",
+	"version": "1.1.0",
 	"description": "simple component system",
 	"main": "built/index.js",
 	"typings": "built/index.d.ts",
