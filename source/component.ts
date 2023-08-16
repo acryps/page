@@ -74,7 +74,6 @@ export class Component {
 		}
 		
 		this.rootNode = element;
-		this.loaded = true;
 		
 		return element;
 	}
