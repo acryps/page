@@ -159,11 +159,11 @@ export class Router extends EventTarget {
 						}
 
 						renderedLayer.route.path = path;
-            
-				    this.updateActivePath(this.renderedStack[this.renderedStack.length - 1].route.fullPath);
-					  this.dispatchEvent(this.onParameterChangeEvent);
-					  this.onparameterchange();
-				  });
+
+						this.updateActivePath(this.renderedStack[this.renderedStack.length - 1].route.fullPath);
+						this.dispatchEvent(this.onParameterChangeEvent);
+						this.onparameterchange();
+					});
 
 					return true;
 				}

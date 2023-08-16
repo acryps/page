@@ -1,3 +1,4 @@
+import { Component } from './component';
 import { RouteLayer } from './route-layer';
 import { Router } from './router';
 
@@ -41,7 +42,7 @@ export class Render {
 				if (this.renderedStack[this.layerIndex + 1] && !child) {
 					// unload the now stale container
 					const staleLayer = this.renderedStack[this.layerIndex + 1];
-					staleLayer.rendered.unload();
+					this.unloadRoute(staleLayer.rendered);
 
 					// re render layer and set its child to null
 					layer.rendered.update(null);
@@ -69,7 +70,7 @@ export class Render {
 
 				// destroy existing component
 				if (existing) {
-					existing.rendered.unload();
+					this.unloadRoute(existing.rendered);
 				}
 
 				// create placeholder and update parent if the parent was unchanged
@@ -150,5 +151,14 @@ export class Render {
 				this.detached = true;
 			}
 		}
+	}
+
+	private async unloadRoute(component: Component) {
+		if (!component.loaded) {
+			return;
+		}
+
+		component.loaded = false;
+		await component.onrouteleave();
 	}
 }

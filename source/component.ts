@@ -3,7 +3,7 @@ import { Router } from './router';
 import { RouteableRouteGroup, RouteGroup } from './route-group';
 
 export class Component {
-	static directives: { 
+	static directives: {
 		[ key: string ]: (element: Node, value, tag: string, attributes, ...content) => void
 	} = {};
 
@@ -22,7 +22,7 @@ export class Component {
 	get activeRoute() { return this.route; }
 	
 	onload(): Promise<void> | void {}
-	onunload(): Promise<void> | void {}
+	onrouteleave(): Promise<void> | void {}
 	onerror(error): Promise<void> | void {}
 
 	onchildchange(parameters, route: Route, component: Component): Promise<void> | void {}
@@ -86,32 +86,6 @@ export class Component {
 		}
 
 		await this.update();
-	}
-
-	async unload() {
-		this.loaded = false;
-
-		async function unloadChildren(node: Node, hostingComponent: Component) {
-			if (node.nodeType == Node.ELEMENT_NODE) {
-				return;
-			}
-			
-			let child = node.firstChild;
-
-			// DOM intended to iterate with nextSibling through nodes
-			while (child) {
-				if (child.hostingComponent && child.hostingComponent.parent == hostingComponent) {
-					await (child as any as Component).unload();
-				} else {
-					await unloadChildren(child, hostingComponent);
-				}
-
-				child = child.nextSibling;
-			}
-		}
-
-		await unloadChildren(this.rootNode, this);
-		await this.onunload();
 	}
 
 	static createElement(tag, attributes, ...contents) {
