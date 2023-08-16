@@ -22,7 +22,7 @@ export class Component {
 	get activeRoute() { return this.route; }
 	
 	onload(): Promise<void> | void {}
-	onunload(): Promise<void> | void {}
+	onrouteleave(): Promise<void> | void {}
 	onerror(error): Promise<void> | void {}
 
 	onchildchange(parameters, route: Route, component: Component): Promise<void> | void {}
@@ -53,10 +53,6 @@ export class Component {
 	}
 	
 	async update(child?: Node) {
-		for (const childComponent of this.getChildren(this.rootNode, this)) {
-			await childComponent.reload();
-		}
-
 		if (arguments.length == 0) {
 			child = this.childNode;
 		} else {
@@ -84,42 +80,22 @@ export class Component {
 	}
 
 	async reload() {
-		await this.onunload();
 		await this.onload();
-		
+
+		if (this.child) {
+			await this.child.reload();
+		}
+
 		await this.update();
 	}
 
 	async unload() {
-		for (const childComponent of this.getChildren(this.rootNode, this)) {
-			await childComponent.unload();
+		if (!this.loaded) {
+			return;
 		}
 
-		if (this.loaded) {
-			this.loaded = false;
-			await this.onunload();
-		}
-	}
-
-	private getChildren(node: Node, hostingComponent: Component) {
-		const children: Component[] = [];
-
-		if (node.nodeType == Node.ELEMENT_NODE) {
-			let child = node.firstChild;
-
-			// DOM intended to iterate with nextSibling through nodes
-			while (child) {
-				if (child.hostingComponent && child.hostingComponent.parent == hostingComponent) {
-					children.push(child.hostingComponent);
-				} else {
-					children.push(...this.getChildren(child, hostingComponent));
-				}
-
-				child = child.nextSibling;
-			}
-		}
-
-		return children;
+		this.loaded = false;
+		await this.onrouteleave();
 	}
 
 	static createElement(tag, attributes, ...contents) {
