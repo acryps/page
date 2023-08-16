@@ -88,15 +88,6 @@ export class Component {
 		await this.update();
 	}
 
-	async unload() {
-		if (!this.loaded) {
-			return;
-		}
-
-		this.loaded = false;
-		await this.onrouteleave();
-	}
-
 	static createElement(tag, attributes, ...contents) {
 		throw 'cannot create element from uncompiled source';
 	}
