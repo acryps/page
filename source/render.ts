@@ -20,7 +20,7 @@ export class Render {
 
 		// set the finished renderers as the rendered stack
 		// -1 because the current element is not rendered yet
-		return this.stack.slice(0, this.layerIndex - 1);
+		return this.stack.slice(0, this.layerIndex);
 	}
 
 	async render() {
