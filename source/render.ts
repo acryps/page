@@ -124,6 +124,11 @@ export class Render {
 						layer.rendered.renderError(error);
 						layer.rendered.rootNode = layer.rendered.renderError(error);
 					}
+
+					// set child node on first render
+					if (layer.rendered.parent) {
+						layer.rendered.parent.childNode = layer.rendered.rootNode;
+					}
 				}
 
 				if (this.layerIndex) {
