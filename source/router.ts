@@ -183,17 +183,19 @@ export class Router extends EventTarget {
 			this.renderedStack = this.activeRender.abort();
 		}
 
-		this.activeRender = new Render(this, this.renderedStack, this.buildRouteStack());
+		const renderer = this.activeRender = new Render(this, this.renderedStack, this.buildRouteStack());
 
 		// this method might take some time as it will load all the components (`onload`)
 		await this.activeRender.render();
 
-		// overwrite the currently active stack and reset the renderer
-		this.renderedStack = this.activeRender.stack;
-		this.activeRender = null;
+		if (renderer == this.activeRender) {
+			// overwrite the currently active stack and reset the renderer
+			this.renderedStack = this.activeRender.stack;
+			this.activeRender = null;
 
-		this.dispatchEvent(this.onRouteChangedEvent);
-		this.onroutechanged();
+			this.dispatchEvent(this.onRouteChangedEvent);
+			this.onroutechanged();
+		}
 	}
 
 	buildRouteStack(source = this.renderedStack) {
