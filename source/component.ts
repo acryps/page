@@ -2,6 +2,8 @@ import { Route } from './route';
 import { Router } from './router';
 import { RouteableRouteGroup, RouteGroup } from './route-group';
 
+export type ComponentContent = string | number | boolean | null | undefined | Node | Component | ComponentContent[];
+
 export class Component {
 	static directives: {
 		[ key: string ]: (element: Node, value, tag: string, attributes, ...content) => void
@@ -130,7 +132,7 @@ export class Component {
 		}
 	}
 
-	private addToElement(item, element: Node) {
+	private addToElement(item: ComponentContent, element: Node) {
 		if (item instanceof Node) {
 			element.appendChild(item);
 		} else if (Array.isArray(item)) {
@@ -155,7 +157,7 @@ export class Component {
 				element.replaceChild(child, placeholder);
 			})();
 		} else if (item !== false && item !== undefined && item !== null) {
-			element.appendChild(document.createTextNode(item));
+			element.appendChild(document.createTextNode(`${item}`));
 		}
 	}
 
