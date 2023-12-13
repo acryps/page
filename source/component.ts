@@ -25,7 +25,10 @@ export class Component {
 	
 	onload(): Promise<void> | void {}
 	onrouteleave(): Promise<void> | void {}
-	onerror(error): Promise<void> | void {}
+	
+	onerror(error): Promise<void> | void {
+		console.error(`Error occured in '${this.constructor.name}'`, error);
+	}
 
 	onchildchange(parameters, route: Route, component: Component): Promise<void> | void {}
 
