@@ -23,7 +23,7 @@ tsc && page compile
 ## Usage
 Create a component by extending the component class
 
-```
+``` tsx
 export class ExampleComponent extends Component {
 	constructor() {
 		super();
@@ -41,7 +41,7 @@ new ExampleComponent().host(document.body);
 
 Let"s extends this by creating a recursive component
 
-```
+``` tsx
 export class ExampleRecursiveComponent extends Component {
 	constructor(private index: number) {
 		super();
@@ -61,11 +61,12 @@ new ExampleRecursiveComponent(10).host(document.body);
 
 ## Router
 page has a built-in router
-```
+``` tsx
 const router = new PathRouter(PageComponent
 	.route("/home", HomeComponent),
 	.route("/books", BooksComponent
-		.route("/:id", BookComponent)
+		.default(BookOverviewComponent)
+		.route("/:id", BookDetailComponent)
 	)
 );
 
@@ -86,16 +87,26 @@ class HomeComponent extends Component {
 }
 
 class BooksComponent extends Component {
-	render() {
+	render(child) {
 		return <section>
 			<h1>Books!</h1>
 
-			<button ui-href="someid">Some Book!</button>
+			{child}
 		</section>;
 	}
 }
 
-class BookComponent extends Component {
+class BookOverviewComponent extends Component {
+	render() {
+		return <ui-book-overview>
+			<button ui-href="someid">Some book!</button>
+			<button ui-href="someid">Some other book!</button>
+			<button ui-href="someid">Another book!</button>
+		</ui-book-overview>;
+	}
+}
+
+class BookDetailComponent extends Component {
 	parameters: { id: string }
 
 	render() {
@@ -109,7 +120,7 @@ router.host(document.body);
 ## Directives
 You can create custom directives (attribute handlers).
 
-```
+``` ts
 Component.directives["epic-link"] = (element, value, tag, attributes, content) => {
 	element.onclick = () => {
 		location.href = value;

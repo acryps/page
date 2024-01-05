@@ -61,7 +61,7 @@ export class Router extends EventTarget {
 	}
 
 	absolute(path: string, relative?: Component) {
-		if (path[0] == '/') {
+		if (!path || path[0] == '/') {
 			return path;
 		} else if (relative) {
 			return this.resolve(`${relative.route.fullPath}/${path}`);
@@ -263,7 +263,15 @@ export class Router extends EventTarget {
 			constructedRoute.clientRoute.parent = parent && parent.clientRoute;
 			constructedRoute.clientRoute.component = constructedRoute.component;
 
-			this.constructedRoutes.push(constructedRoute);
+			// a default route should be resolved instead of the parent route whenever the path is requested
+			// replace the parent route with the default as a navigateable destination to automatically lead the router to the default route
+			const duplicateIndex = this.constructedRoutes.findIndex(route => `${route.path}` == `${constructedRoute.path}`);
+
+			if (duplicateIndex > -1) {
+				this.constructedRoutes.splice(duplicateIndex, 1, constructedRoute);
+			} else {
+				this.constructedRoutes.push(constructedRoute);
+			}
 
 			if (!(typeof route == 'function') && (route as any).children) {
 				this.constructRoutes(`${root}${path}`, (route as any).children, constructedRoute);
@@ -303,7 +311,7 @@ export class PathRouter extends Router {
 		root: RouteableRouteGroup | typeof Component,
 		routes?: { [ key: string ]: RouteGroup; }
 	) {
-		super(() => location.pathname, value => history.pushState(null, null, value), root, routes);
+		super(() => location.pathname.replace(/^\/$/, ''), value => history.pushState(null, null, value || '/'), root, routes);
 
 		onpopstate = () => {
 			this.update();
