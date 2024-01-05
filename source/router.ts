@@ -263,8 +263,8 @@ export class Router extends EventTarget {
 			constructedRoute.clientRoute.parent = parent && parent.clientRoute;
 			constructedRoute.clientRoute.component = constructedRoute.component;
 
-			// when the path matches the route and a default component is assigned to it, the default component gets rendered
-			// to achieve this, the default component gets assigned to the path and with that replaces its parent
+			// a default route should be resolved instead of the parent route whenever the path is requested
+			// replace the parent route with the default as a navigateable destination to automatically lead the router to the default route
 			const duplicateIndex = this.constructedRoutes.findIndex(route => `${route.path}` == `${constructedRoute.path}`);
 
 			if (duplicateIndex > -1) {
