@@ -61,7 +61,7 @@ export class Router extends EventTarget {
 	}
 
 	absolute(path: string, relative?: Component) {
-		if (path[0] == '/') {
+		if (!path || path[0] == '/') {
 			return path;
 		} else if (relative) {
 			return this.resolve(`${relative.route.fullPath}/${path}`);
@@ -249,11 +249,6 @@ export class Router extends EventTarget {
 		for (let path in routes) {
 			const route = routes[path];
 
-			// the default route in the root layer should be '/' instead of '' as an empty string isn't a valid full path
-			if (!root && !path && !!parent) {
-				path = '/';
-			}
-
 			const constructedRoute = {
 				path: new RegExp(`^${`${root}${path}`.split('/').join('\\/').replace(Router.parameterNameMatcher, Router.parameterMatcher)}$`),
 				openStartPath: new RegExp(`${`${path}`.split('/').join('\\/').replace(Router.parameterNameMatcher, Router.parameterMatcher)}$`),
@@ -315,7 +310,7 @@ export class PathRouter extends Router {
 		root: RouteableRouteGroup | typeof Component,
 		routes?: { [ key: string ]: RouteGroup; }
 	) {
-		super(() => location.pathname, value => history.pushState(null, null, value), root, routes);
+		super(() => location.pathname.replace(/^\/$/, ''), value => history.pushState(null, null, value || '/'), root, routes);
 
 		onpopstate = () => {
 			this.update();
