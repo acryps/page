@@ -269,7 +269,7 @@ export class Router extends EventTarget {
 			constructedRoute.clientRoute.component = constructedRoute.component;
 
 			// replace root route with default child route
-			const duplicateIndex = this.constructedRoutes.findIndex(route => route.path + '' == constructedRoute.path + '');
+			const duplicateIndex = this.constructedRoutes.findIndex(route => `${route.path}` == `${constructedRoute.path}`);
 
 			if (duplicateIndex > -1) {
 				this.constructedRoutes.splice(duplicateIndex, 1, constructedRoute);
