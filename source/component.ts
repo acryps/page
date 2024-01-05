@@ -202,7 +202,7 @@ export class Component {
 				[path]: component
 			},
 
-			route(path: string, component: RouteGroup): RouteableRouteGroup {
+			route(path: string, component: RouteGroup) {
 				tree.children[path] = component;
 
 				return tree;
@@ -210,5 +210,9 @@ export class Component {
 		}
 
 		return tree;
+	}
+
+	static default(component: typeof Component) {
+		return this.route('', component);
 	}
 }

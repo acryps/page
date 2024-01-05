@@ -249,6 +249,11 @@ export class Router extends EventTarget {
 		for (let path in routes) {
 			const route = routes[path];
 
+			// the default route in the root layer should be '/' instead of '' as an empty string isn't a valid full path
+			if (!root && !path && !!parent) {
+				path = '/';
+			}
+
 			const constructedRoute = {
 				path: new RegExp(`^${`${root}${path}`.split('/').join('\\/').replace(Router.parameterNameMatcher, Router.parameterMatcher)}$`),
 				openStartPath: new RegExp(`${`${path}`.split('/').join('\\/').replace(Router.parameterNameMatcher, Router.parameterMatcher)}$`),
@@ -263,7 +268,14 @@ export class Router extends EventTarget {
 			constructedRoute.clientRoute.parent = parent && parent.clientRoute;
 			constructedRoute.clientRoute.component = constructedRoute.component;
 
-			this.constructedRoutes.push(constructedRoute);
+			// replace root route with default child route
+			const duplicateIndex = this.constructedRoutes.findIndex(route => route.path + '' == constructedRoute.path + '');
+
+			if (duplicateIndex > -1) {
+				this.constructedRoutes.splice(duplicateIndex, 1, constructedRoute);
+			} else {
+				this.constructedRoutes.push(constructedRoute);
+			}
 
 			if (!(typeof route == 'function') && (route as any).children) {
 				this.constructRoutes(`${root}${path}`, (route as any).children, constructedRoute);
