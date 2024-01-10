@@ -70,11 +70,14 @@ export class Component {
 
 		const element = this.render(child);
 		
+		// replace the old rendered content with the newly rendered content
 		if (this.rootNode?.parentNode) {
 			this.rootNode.parentNode.replaceChild(element, this.rootNode);
 		}
 
-		if (this.parent) {
+		// update the parents child node, so that updating the parent places the updated content this component into child
+		// only set this when the parent has been set by the router, eg if the parents child is us
+		if (this.parent && this.parent.child == this) {
 			this.parent.childNode = element;
 		}
 		
