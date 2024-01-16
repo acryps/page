@@ -45,6 +45,7 @@ export class Render {
 					this.unloadRoute(staleLayer.rendered);
 
 					// re render layer and set its child to null
+					layer.rendered.child = null;
 					layer.rendered.update(null);
 				}
 			} else {
