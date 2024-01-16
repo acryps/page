@@ -305,8 +305,8 @@ export class Router extends EventTarget {
 		this.update();
 	}
 
-	preventChildPropagation() {
-		this.activeRender?.abort();
+	preventChildPropagation(children = 0) {
+		this.activeRender?.abort(1 + children);
 	}
 }
 

@@ -4,7 +4,7 @@ import { Router } from './router';
 
 export class Render {
 	detached = false;
-	rendering = true;
+	stackLength: true | number = true;
 
 	layerIndex = 0;
 
@@ -14,9 +14,9 @@ export class Render {
 		public stack: RouteLayer[]
 	) {}
 
-	abort() {
+	abort(stackLength = 0) {
 		// will prevent returning `onload`s from continuing to render
-		this.rendering = false;
+		this.stackLength = stackLength;
 
 		// set the finished renderers as the rendered stack
 		// -1 because the current element is not rendered yet
@@ -49,6 +49,10 @@ export class Render {
 				}
 			} else {
 				let layerError;
+
+				if (!this.stackLength) {
+					return;
+				}
 
 				// route changed, renewed or any of its parents changed
 				const parent = this.stack[this.layerIndex - 1];
@@ -88,8 +92,15 @@ export class Render {
 				}
 
 				// the data loaded by `onload` should be ignored and the whole render should be stopped when `abort` was called
-				if (!this.rendering) {
-					return;
+				if (this.stackLength !== true) {
+					// decrease the length by one
+					// the render will abort when this reaches 0
+					//
+					// example: stack length 2
+					// component A: renders & loads, stack 2 → 1
+					// component B: renders & loads, stack 1 → 0
+					// component C: does not render or load
+					this.stackLength--;
 				}
 
 				// create placeholder for child
