@@ -304,6 +304,10 @@ export class Router extends EventTarget {
 
 		this.update();
 	}
+
+	preventChildPropagation() {
+		this.activeRender?.abort();
+	}
 }
 
 export class PathRouter extends Router {
