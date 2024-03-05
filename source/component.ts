@@ -51,7 +51,7 @@ export class Component {
 			'component', 
 			{ type: this.constructor.name }, 
 			'< ', this.constructor.name,
-			`(${Object.keys(this.parameters).map(key => `${key}: ${JSON.stringify(this.parameters[key])}`).join(', ')})`, 
+			this.parameters ? `(${Object.keys(this.parameters).map(key => `${key}: ${JSON.stringify(this.parameters[key])}`).join(', ')})` : '*', 
 			'{', child, '}', 
 			' >'
 		);

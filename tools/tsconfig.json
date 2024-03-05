@@ -1,12 +1,13 @@
 {
 	"compilerOptions": {
-		"module": "CommonJS",
-		"outDir": "built",
 		"target": "esnext",
+		"module": "esnext",
+		"outDir": "../.built/tools",
 		"declaration": true,
 		"lib": [
 			"esnext",
 			"DOM"
-		]
+		],
+		"moduleResolution": "node"
 	}
 }

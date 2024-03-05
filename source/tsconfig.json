@@ -1,0 +1,12 @@
+{
+	"compilerOptions": {
+		"target": "esnext",
+		"module": "esnext",
+		"outDir": "../.built/source",
+		"declaration": true,
+		"lib": [
+			"esnext",
+			"DOM"
+		]
+	}
+}
