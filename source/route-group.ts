@@ -1,17 +1,16 @@
 import { Component } from './component';
 
-export type RouteGroup = typeof Component | {
+export type ResolveableRouteGroup = Routable | (() => Promise<Routable>);
+
+export type RouteGroup = {
 	component: typeof Component;
 	children?: {
-		[key: string]: RouteGroup;
+		[key: string]: ResolveableRouteGroup;
 	};
 };
 
-export type RouteableRouteGroup = {
-	component: typeof Component;
-	children: {
-		[key: string]: RouteGroup;
-	};
+export type Routable = typeof Component | RouteGroup;
 
-	route(route: string, component: typeof Component | RouteableRouteGroup): RouteableRouteGroup;
-}
+export type RouteableRouteGroup = RouteGroup & {
+	route(route: string, component: typeof Component | ResolveableRouteGroup): ResolveableRouteGroup;
+};

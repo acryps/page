@@ -1,6 +1,6 @@
 import { Component } from './component';
 import { ConstructedRoute } from './constructed-route';
-import { RouteableRouteGroup, RouteGroup } from './route-group';
+import { ResolveableRouteGroup, RouteableRouteGroup, Routable, RouteGroup } from './route-group';
 import { Route } from './route';
 import { RouteLayer } from './route-layer';
 import { Render } from './render';
@@ -8,7 +8,7 @@ import { ParameterContainer } from './parameters';
 
 export class Router extends EventTarget {
 	static parameterNameMatcher = /:[a-zA-Z0-9]+/g;
-	static parameterMatcher = '([^/]+)';
+	static parameterValueMatcher = '([^/]+)';
 
 	declare addEventListener: (type: 'beforeroutechange' | 'routechanged' | 'parameterchanged', callback: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => void;
 
@@ -22,10 +22,8 @@ export class Router extends EventTarget {
 		console.log(`Error occurred in component`, component, error);
 	}
 
+	private unresolvedRoutes: ResolveableRouteGroup[];
 	private constructedRoutes: ConstructedRoute[] = [];
-
-	private root: typeof Component;
-	private routes: { [ key: string ]: RouteGroup; };
 
 	private renderedStack: RouteLayer[];
 	private activeRender: Render;
@@ -37,22 +35,11 @@ export class Router extends EventTarget {
 	constructor(
 		public getActivePath: () => string,
 		public updateActivePath: (value: string) => void,
-		root: RouteableRouteGroup | typeof Component,
-		routes?: { [ key: string ]: RouteGroup; }
+		routes: RouteGroup
 	) {
 		super();
-
-		if (routes) {
-			this.root = root as typeof Component;
-			this.routes = routes;
-		} else {
-			if (typeof root == 'function') {
-				this.root = root;
-			} else {
-				this.root = root.component;
-				this.routes = root.children;
-			}
-		}
+		
+		this.importRoutes('', routes);
 	}
 
 	navigate(path: string, relative?: Component) {
@@ -85,11 +72,50 @@ export class Router extends EventTarget {
 
 		return `/${resolved.join('/')}`;
 	}
+	
+	// resolves and imports routes if nescessary
+	async findRoute(path: string) {
+		const existing = this.getRoute(path);
+		
+		if (existing) {
+			return existing;
+		}
+		
+		console.debug('find a route', this.constructedRoutes)
 
+		return null;
+	}
+	
+	importRoutes(prefix: string, root: RouteGroup) {
+		const rootRoute = this.register(prefix, root.component);
+		
+		for (let path in root.children) {
+			const child = root.children[path];
+			
+			if (typeof child == 'function') {
+				if (`${child}`.match(/^class\s/)) {
+					const fullPath = prefix + path;
+					this.register(fullPath, child as typeof Component);
+				} else {
+					console.log('RESOLVABLE', path);
+				}
+			} else if (typeof child == 'object') {
+				// import sub route group
+				this.importRoutes(prefix + path, child as RouteGroup);
+			}
+		}
+		
+		return rootRoute;
+	}
+
+	// only searches in already loaded routes / zones
 	getRoute(path: string) {
 		for (let route of this.constructedRoutes) {
-			if (route.path.test(path)) {
-				return route;
+			// skip routes that have a default child
+			if (!route.defaultsTo) {
+				if (route.path.test(path)) {
+					return route;
+				}
 			}
 		}
 
@@ -105,13 +131,15 @@ export class Router extends EventTarget {
 		let route = activeRoute;
 
 		while (route) {
+			console.debug('>', `'${path}'`, route);
+			
 			parameterStack.unshift(this.getRouteParameters(
 				route, 
 				activeRoute.peers.indexOf(route),
-				path.match(route.openStartPath).slice(1)
+				path.match(route.suffix).slice(1)
 			));
 
-			path = path.replace(route.openStartPath, '');
+			path = path.replace(route.suffix, '');
 			route = route.parent;
 		}
 
@@ -183,7 +211,7 @@ export class Router extends EventTarget {
 			this.renderedStack = this.activeRender.abort();
 		}
 
-		const renderer = this.activeRender = new Render(this, this.renderedStack, this.buildRouteStack());
+		const renderer = this.activeRender = new Render(this, this.renderedStack, await this.buildRouteStack());
 
 		// this method might take some time as it will load all the components (`onload`)
 		await this.activeRender.render();
@@ -198,11 +226,17 @@ export class Router extends EventTarget {
 		}
 	}
 
-	buildRouteStack(source = this.renderedStack) {
+	async buildRouteStack(source = this.renderedStack) {
 		const path = this.getActivePath();
-		const route = this.getRoute(path);
+		const route = await this.findRoute(path);
 		const parameters = this.getActiveParameters(path, route);
 
+		console.debug('navigate', path, route, parameters, route.peers)
+		
+		for (let layerIndex = 0; layerIndex < route.peers.length; layerIndex++) {
+			console.debug('  ', layerIndex, route.peers[layerIndex], parameters[layerIndex].client)
+		}
+		
 		const stack: RouteLayer[] = [];
 
 		// will be true once one layer has not been found in the source stack
@@ -210,21 +244,21 @@ export class Router extends EventTarget {
 		let changed = false;
 
 		for (let layerIndex = 0; layerIndex < route.peers.length; layerIndex++) {
-			let path = route.peers[layerIndex].clientRoute.matchingPath;
+			let path = route.peers[layerIndex].matchingPath;
 			
 			// insert the active parameters into the client routes path
 			for (let key in parameters[layerIndex].client) {
 				path = path.replace(`:${key}`, parameters[layerIndex].client[key]);
 			}
 
-			let clientRoute;
+			let clientRoute: Route;
 			
 			// try to reuse an existing route
 			if (!changed && source && source[layerIndex] && source[layerIndex].route.path == path) {
 				clientRoute = source[layerIndex].route;
 			} else {
 				clientRoute = new Route();
-				clientRoute.matchingPath = route.peers[layerIndex].clientRoute.matchingPath;
+				clientRoute.matchingPath = route.peers[layerIndex].matchingPath;
 				clientRoute.parent = stack[layerIndex - 1]?.route;
 				clientRoute.component = route.peers[layerIndex].component;
 				clientRoute.path = path;
@@ -241,65 +275,53 @@ export class Router extends EventTarget {
 				source: route.peers[layerIndex]
 			});
 		}
+		
+		console.debug('stack', stack);
 
 		return stack;
 	}
+	
+	private register(path: string, destination: typeof Component) {
+		const parents = this.constructedRoutes.filter(route => !route.defaultingParent && route.prefix.test(path));
+		const parent = parents.at(-1);
+		
+		const matchingPath = path.replace(parent?.fullPath, '');
 
-	constructRoutes(root, routes = this.routes, parent: ConstructedRoute = null) {
-		for (let path in routes) {
-			const route = routes[path];
+		const constructedRoute = new ConstructedRoute(
+			path,
+			matchingPath,
+			destination,
+			parents
+		);
 
-			const constructedRoute = {
-				path: new RegExp(`^${`${root}${path}`.split('/').join('\\/').replace(Router.parameterNameMatcher, Router.parameterMatcher)}$`),
-				openStartPath: new RegExp(`${`${path}`.split('/').join('\\/').replace(Router.parameterNameMatcher, Router.parameterMatcher)}$`),
-				component: typeof route == 'function' ? route : (route as any).component,
-				parent: parent,
-				parameters: (path.match(Router.parameterNameMatcher) || []).map(key => key.replace(':', '')),
-				peers: [],
-				clientRoute: new Route()
-			}
+		// registering a default route places a route with no extra name into the child list
+		// routes with defaultsTo will be ignored when finding routes
+		// routes with defaultingParent will be ignored when building the peer stack
+		// 
+		// PageComponent
+		// 	.default(HomeComponent)
+		//  .route('/a', AComponent)
+		// 
+		// -> 
+		// 
+		// '/' = PageComponent [defaultsTo = HomeComponent]
+		// '/' = HomeComponent [defaultingParent = PageComponent]
+		// '/a' = AComponent
+		const defaultingParent = this.constructedRoutes.find(route => `${route.path}` == `${constructedRoute.path}`);
 
-			constructedRoute.clientRoute.matchingPath = path;
-			constructedRoute.clientRoute.parent = parent && parent.clientRoute;
-			constructedRoute.clientRoute.component = constructedRoute.component;
-
-			// a default route should be resolved instead of the parent route whenever the path is requested
-			// replace the parent route with the default as a navigateable destination to automatically lead the router to the default route
-			const duplicateIndex = this.constructedRoutes.findIndex(route => `${route.path}` == `${constructedRoute.path}`);
-
-			if (duplicateIndex > -1) {
-				this.constructedRoutes.splice(duplicateIndex, 1, constructedRoute);
-			} else {
-				this.constructedRoutes.push(constructedRoute);
-			}
-
-			if (!(typeof route == 'function') && (route as any).children) {
-				this.constructRoutes(`${root}${path}`, (route as any).children, constructedRoute);
-			}
+		if (defaultingParent) {
+			defaultingParent.defaultsTo = constructedRoute;
+			constructedRoute.defaultingParent = defaultingParent;
 		}
-
-		if (routes == this.routes) {
-			for (let route of this.constructedRoutes) {
-				let item = route;
-
-				while (item) {
-					route.peers.unshift(item);
-
-					item = item.parent;
-				}
-			}
-		}
+		
+		this.constructedRoutes.push(constructedRoute);
+		
+		console.log(`registered '${path}' to ${destination.name}, from '${parent?.component.name}'`, parents);
+		
+		return constructedRoute;
 	}
 
 	host(root: Node) {
-		this.routes = {
-			'': {
-				component: this.root,
-				children: this.routes
-			}
-		};
-		
-		this.constructRoutes('');
 		this.rootNode = root;
 
 		this.update();
@@ -312,10 +334,9 @@ export class Router extends EventTarget {
 
 export class PathRouter extends Router {
 	constructor(
-		root: RouteableRouteGroup | typeof Component,
-		routes?: { [ key: string ]: RouteGroup; }
+		routes: RouteGroup
 	) {
-		super(() => location.pathname.replace(/^\/$/, ''), value => history.pushState(null, null, value || '/'), root, routes);
+		super(() => location.pathname.replace(/^\/$/, ''), value => history.pushState(null, null, value || '/'), routes);
 
 		onpopstate = () => {
 			this.update();
@@ -325,10 +346,9 @@ export class PathRouter extends Router {
 
 export class HashRouter extends Router {
 	constructor(
-		root: RouteableRouteGroup | typeof Component,
-		routes?: { [ key: string ]: RouteGroup; }
+		routes: RouteGroup
 	) {
-		super(() => location.hash.replace('#', ''), value => history.pushState(null, null, `#${value}`), root, routes);
+		super(() => location.hash.replace('#', ''), value => history.pushState(null, null, `#${value}`), routes);
 
 		onhashchange = () => {
 			this.update();

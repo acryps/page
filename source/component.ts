@@ -1,6 +1,6 @@
 import { Route } from './route';
 import { Router } from './router';
-import { RouteableRouteGroup, RouteGroup } from './route-group';
+import { ResolveableRouteGroup, RouteableRouteGroup, Routable } from './route-group';
 
 export type ComponentContent = string | number | boolean | null | undefined | Node | Component | ComponentContent[];
 
@@ -198,14 +198,15 @@ export class Component {
 		return element;
 	}
 
-	static route(path: string, component: RouteGroup) {
+	static route(path: string, component: ResolveableRouteGroup) {
 		const tree: RouteableRouteGroup = {
 			component: this,
+			
 			children: {
 				[path]: component
 			},
 
-			route(path: string, component: RouteGroup) {
+			route(path: string, component: ResolveableRouteGroup) {
 				tree.children[path] = component;
 
 				return tree;
