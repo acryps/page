@@ -1,6 +1,6 @@
 import { Component } from './component';
 import { ConstructedRoute } from './constructed-route';
-import { ResolveableRouteGroup, RouteableRouteGroup, Routable, RouteGroup } from './route-group';
+import { ResolveableRouteGroup, RouteableRouteGroup, Routable, RouteGroup, UnresolvedRouteGroup } from './route-group';
 import { Route } from './route';
 import { RouteLayer } from './route-layer';
 import { Render } from './render';
@@ -22,7 +22,7 @@ export class Router extends EventTarget {
 		console.log(`Error occurred in component`, component, error);
 	}
 
-	private unresolvedRoutes: ResolveableRouteGroup[];
+	private unresolvedRoutes: Record<string, UnresolvedRouteGroup> = {};
 	private constructedRoutes: ConstructedRoute[] = [];
 
 	private renderedStack: RouteLayer[];
@@ -81,7 +81,26 @@ export class Router extends EventTarget {
 			return existing;
 		}
 		
-		console.debug('find a route', this.constructedRoutes)
+		// resolve any unresolved route that could be the required route
+		for (let route in this.unresolvedRoutes) {
+			if (path.startsWith(route)) {
+				const resolver = this.unresolvedRoutes[route];
+				delete this.unresolvedRoutes[route];
+				
+				const resolved = await resolver();
+				
+				if (typeof resolved == 'object') {
+					this.importRoutes(route, resolved);
+				} else {
+					this.importRoutes(route, {
+						component: resolved,
+						children: {}
+					});
+				}
+				
+				return await this.findRoute(path);
+			}
+		}
 
 		return null;
 	}
@@ -93,11 +112,13 @@ export class Router extends EventTarget {
 			const child = root.children[path];
 			
 			if (typeof child == 'function') {
+				const fullPath = prefix + path;
+				
 				if (`${child}`.match(/^class\s/)) {
-					const fullPath = prefix + path;
 					this.register(fullPath, child as typeof Component);
 				} else {
-					console.log('RESOLVABLE', path);
+					// save the unresolved route for later importing
+					this.unresolvedRoutes[fullPath] = child as UnresolvedRouteGroup;
 				}
 			} else if (typeof child == 'object') {
 				// import sub route group
@@ -131,8 +152,6 @@ export class Router extends EventTarget {
 		let route = activeRoute;
 
 		while (route) {
-			console.debug('>', `'${path}'`, route);
-			
 			parameterStack.unshift(this.getRouteParameters(
 				route, 
 				activeRoute.peers.indexOf(route),
@@ -230,12 +249,6 @@ export class Router extends EventTarget {
 		const path = this.getActivePath();
 		const route = await this.findRoute(path);
 		const parameters = this.getActiveParameters(path, route);
-
-		console.debug('navigate', path, route, parameters, route.peers)
-		
-		for (let layerIndex = 0; layerIndex < route.peers.length; layerIndex++) {
-			console.debug('  ', layerIndex, route.peers[layerIndex], parameters[layerIndex].client)
-		}
 		
 		const stack: RouteLayer[] = [];
 
@@ -275,8 +288,6 @@ export class Router extends EventTarget {
 				source: route.peers[layerIndex]
 			});
 		}
-		
-		console.debug('stack', stack);
 
 		return stack;
 	}
@@ -315,8 +326,6 @@ export class Router extends EventTarget {
 		}
 		
 		this.constructedRoutes.push(constructedRoute);
-		
-		console.log(`registered '${path}' to ${destination.name}, from '${parent?.component.name}'`, parents);
 		
 		return constructedRoute;
 	}

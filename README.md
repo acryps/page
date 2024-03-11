@@ -68,6 +68,10 @@ const router = new PathRouter(PageComponent
 		.default(BookOverviewComponent)
 		.route("/:id", BookDetailComponent)
 	)
+	
+	// will only be resolved and thus loaded when users access the /admin route
+	// → your builder can do code splitting!
+	.route("/admin", () => import("./admin").then(module => module.default))
 );
 
 class PageComponent extends Component {

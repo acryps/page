@@ -1,6 +1,8 @@
 import { Component } from './component';
 
-export type ResolveableRouteGroup = Routable | (() => Promise<Routable>);
+export type UnresolvedRouteGroup = () => Promise<Routable>;
+
+export type ResolveableRouteGroup = Routable | UnresolvedRouteGroup;
 
 export type RouteGroup = {
 	component: typeof Component;
