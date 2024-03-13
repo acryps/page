@@ -14,5 +14,5 @@ export type RouteGroup = {
 export type Routable = typeof Component | RouteGroup;
 
 export type RouteableRouteGroup = RouteGroup & {
-	route(route: string, component: typeof Component | ResolveableRouteGroup): ResolveableRouteGroup;
+	route(route: string, component: typeof Component | ResolveableRouteGroup): RouteableRouteGroup;
 };
