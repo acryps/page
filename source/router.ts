@@ -18,8 +18,18 @@ export class Router extends EventTarget {
 	onroutechanged = () => {};
 	onparameterchanged = () => {};
 
+	// invokend when an error occurs while loading or rendering a component
+	// does not catch unawaited errors
 	onerror(error: Error, component?: Component) {
 		console.log(`Error occurred in component`, component, error);
+	}
+	
+	// invoken when a route could not be found
+	// 
+	// blocks further processing of the navigation
+	// navigation to an error page is possible using `.navigate`
+	onundefinedroute(path: string) {
+		throw new Error('Route not found');
 	}
 
 	private unresolvedRoutes: Record<string, UnresolvedRouteGroup> = {};
@@ -249,6 +259,12 @@ export class Router extends EventTarget {
 		const path = this.getActivePath();
 		const route = await this.findRoute(path);
 		const parameters = this.getActiveParameters(path, route);
+		
+		if (!route) {
+			this.onundefinedroute();
+			
+			return;
+		}
 		
 		const stack: RouteLayer[] = [];
 
