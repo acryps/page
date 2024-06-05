@@ -29,7 +29,7 @@ export class Router extends EventTarget {
 	// blocks further processing of the navigation
 	// navigation to an error page is possible using `.navigate`
 	onundefinedroute(path: string) {
-		throw new Error('Route not found');
+		throw new Error(`Route '${path}' not found`);
 	}
 
 	private unresolvedRoutes: Record<string, UnresolvedRouteGroup> = {};
