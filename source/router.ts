@@ -239,8 +239,15 @@ export class Router extends EventTarget {
 		if (this.activeRender) {
 			this.renderedStack = this.activeRender.abort();
 		}
+		
+		const stack = await this.buildRouteStack();
+		
+		// no stack is returned if an undefined route was invoked, but no error was thrown
+		if (!stack) {
+			return;
+		}
 
-		const renderer = this.activeRender = new Render(this, this.renderedStack, await this.buildRouteStack());
+		const renderer = this.activeRender = new Render(this, this.renderedStack, stack);
 
 		// this method might take some time as it will load all the components (`onload`)
 		await this.activeRender.render();
