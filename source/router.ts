@@ -261,7 +261,7 @@ export class Router extends EventTarget {
 		const parameters = this.getActiveParameters(path, route);
 		
 		if (!route) {
-			this.onundefinedroute();
+			this.onundefinedroute(path);
 			
 			return;
 		}
