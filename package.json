@@ -12,7 +12,9 @@
 	"scripts": {
 		"build": "npm run build:library && npm run build:tools",
 		"build:library": "cd source && tsc && cd ..",
-		"build:tools": "cd tools && tsc && cd .."
+		"build:tools": "cd tools && tsc && cd ..",
+
+		"preversion": "npm run build"
 	},
 	"license": "GPL-3.0-only",
 	"keywords": [
