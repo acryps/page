@@ -1,6 +1,6 @@
 {
 	"name": "@acryps/page",
-	"description": "simple component system",
+	"description": "robust routed component system",
 	"version": "1.8.0",
 	"type": "module",
 	"main": ".built/source/index.js",
@@ -10,7 +10,9 @@
 	},
 	"sideEffects": false,
 	"scripts": {
-		"build": "cd source && tsc && cd .. && cd tools && tsc && cd .."
+		"build": "npm run build:library && npm run build:tools",
+		"build:library": "cd source && tsc && cd ..",
+		"build:tools": "cd tools && tsc && cd .."
 	},
 	"license": "GPL-3.0-only",
 	"keywords": [
@@ -24,6 +26,7 @@
 		"estraverse": "^5.3.0"
 	},
 	"devDependencies": {
-		"@types/node": "^20.5.0"
+		"@types/node": "^20.4.2",
+		"typescript": "^4.9.5"
 	}
 }
