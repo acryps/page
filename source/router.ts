@@ -23,9 +23,9 @@ export class Router extends EventTarget {
 	onerror(error: Error, component?: Component) {
 		console.log(`Error occurred in component`, component, error);
 	}
-	
+
 	// invoken when a route could not be found
-	// 
+	//
 	// blocks further processing of the navigation
 	// navigation to an error page is possible using `.navigate`
 	onundefinedroute(path: string) {
@@ -48,7 +48,7 @@ export class Router extends EventTarget {
 		routes: RouteGroup
 	) {
 		super();
-		
+
 		this.importRoutes('', routes);
 	}
 
@@ -82,23 +82,23 @@ export class Router extends EventTarget {
 
 		return `/${resolved.join('/')}`;
 	}
-	
+
 	// resolves and imports routes if nescessary
 	async findRoute(path: string) {
 		const existing = this.getRoute(path);
-		
+
 		if (existing) {
 			return existing;
 		}
-		
+
 		// resolve any unresolved route that could be the required route
 		for (let route in this.unresolvedRoutes) {
 			if (path.startsWith(route)) {
 				const resolver = this.unresolvedRoutes[route];
 				delete this.unresolvedRoutes[route];
-				
+
 				const resolved = await resolver();
-				
+
 				if (typeof resolved == 'object') {
 					this.importRoutes(route, resolved);
 				} else {
@@ -107,23 +107,23 @@ export class Router extends EventTarget {
 						children: {}
 					});
 				}
-				
+
 				return await this.findRoute(path);
 			}
 		}
 
 		return null;
 	}
-	
+
 	importRoutes(prefix: string, root: RouteGroup) {
 		const rootRoute = this.register(prefix, root.component);
-		
+
 		for (let path in root.children) {
 			const child = root.children[path];
-			
+
 			if (typeof child == 'function') {
 				const fullPath = prefix + path;
-				
+
 				if (`${child}`.match(/^class\s/)) {
 					this.register(fullPath, child as typeof Component);
 				} else {
@@ -135,7 +135,7 @@ export class Router extends EventTarget {
 				this.importRoutes(prefix + path, child as RouteGroup);
 			}
 		}
-		
+
 		return rootRoute;
 	}
 
@@ -163,7 +163,7 @@ export class Router extends EventTarget {
 
 		while (route) {
 			parameterStack.unshift(this.getRouteParameters(
-				route, 
+				route,
 				activeRoute.peers.indexOf(route),
 				path.match(route.suffix).slice(1)
 			));
@@ -189,7 +189,7 @@ export class Router extends EventTarget {
 			set renderedLayer(layer) {
 				renderedLayer = layer;
 			},
-			
+
 			client: new Proxy<any>(parameters, {
 				set: (object, property, value) => {
 					// don't update if the value is already set
@@ -212,7 +212,7 @@ export class Router extends EventTarget {
 
 						// regenerate our routes parameter string
 						let path = route.clientRoute.matchingPath;
-						
+
 						for (let key in object) {
 							path = path.replace(`:${key}`, object[key]);
 						}
@@ -230,6 +230,10 @@ export class Router extends EventTarget {
 		};
 	}
 
+	getRenderedComponents() {
+		return this.renderedStack.map(layer => layer.rendered);
+	}
+
 	async update() {
 		this.dispatchEvent(this.onBeforeRouteChangeEvent);
 		this.onbeforeroutechange();
@@ -239,9 +243,9 @@ export class Router extends EventTarget {
 		if (this.activeRender) {
 			this.renderedStack = this.activeRender.abort();
 		}
-		
+
 		const stack = await this.buildRouteStack();
-		
+
 		// no stack is returned if an undefined route was invoked, but no error was thrown
 		if (!stack) {
 			return;
@@ -266,13 +270,13 @@ export class Router extends EventTarget {
 		const path = this.getActivePath();
 		const route = await this.findRoute(path);
 		const parameters = this.getActiveParameters(path, route);
-		
+
 		if (!route) {
 			this.onundefinedroute(path);
-			
+
 			return;
 		}
-		
+
 		const stack: RouteLayer[] = [];
 
 		// will be true once one layer has not been found in the source stack
@@ -281,14 +285,14 @@ export class Router extends EventTarget {
 
 		for (let layerIndex = 0; layerIndex < route.peers.length; layerIndex++) {
 			let path = route.peers[layerIndex].matchingPath;
-			
+
 			// insert the active parameters into the client routes path
 			for (let key in parameters[layerIndex].client) {
 				path = path.replace(`:${key}`, parameters[layerIndex].client[key]);
 			}
 
 			let clientRoute: Route;
-			
+
 			// try to reuse an existing route
 			if (!changed && source && source[layerIndex] && source[layerIndex].route.path == path) {
 				clientRoute = source[layerIndex].route;
@@ -314,11 +318,11 @@ export class Router extends EventTarget {
 
 		return stack;
 	}
-	
+
 	private register(path: string, destination: typeof Component) {
 		const parents = this.constructedRoutes.filter(route => !route.defaultingParent && route.prefix.test(path));
 		const parent = parents.at(-1);
-		
+
 		const matchingPath = path.replace(parent?.fullPath, '');
 
 		const constructedRoute = new ConstructedRoute(
@@ -331,13 +335,13 @@ export class Router extends EventTarget {
 		// registering a default route places a route with no extra name into the child list
 		// routes with defaultsTo will be ignored when finding routes
 		// routes with defaultingParent will be ignored when building the peer stack
-		// 
+		//
 		// PageComponent
 		// 	.default(HomeComponent)
 		//  .route('/a', AComponent)
-		// 
-		// -> 
-		// 
+		//
+		// ->
+		//
 		// '/' = PageComponent [defaultsTo = HomeComponent]
 		// '/' = HomeComponent [defaultingParent = PageComponent]
 		// '/a' = AComponent
@@ -347,9 +351,9 @@ export class Router extends EventTarget {
 			defaultingParent.defaultsTo = constructedRoute;
 			constructedRoute.defaultingParent = defaultingParent;
 		}
-		
+
 		this.constructedRoutes.push(constructedRoute);
-		
+
 		return constructedRoute;
 	}
 
