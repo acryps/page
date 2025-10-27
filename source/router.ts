@@ -231,7 +231,7 @@ export class Router extends EventTarget {
 	}
 
 	getRenderedComponents() {
-		return this.renderedStack.map(layer => layer.rendered);
+		return this.renderedStack?.map(layer => layer.rendered) ?? [];
 	}
 
 	async update() {
