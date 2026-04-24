@@ -234,6 +234,16 @@ export class Router extends EventTarget {
 		return this.renderedStack?.map(layer => layer.rendered) ?? [];
 	}
 
+	getRouteMap() {
+		const map = new Map<string, typeof Component>();
+
+		for (let route of this.constructedRoutes) {
+			map.set(route.fullPath, route.component);
+		}
+
+		return map;
+	}
+
 	async update() {
 		this.dispatchEvent(this.onBeforeRouteChangeEvent);
 		this.onbeforeroutechange();
